@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bouqet</title>
+<style>
+html,body{margin:0;height:100%;background:#06041c;color:#c9c4ff;font-family:monospace}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+canvas{width:100%;max-width:600px;flex:1;touch-action:none;cursor:grab}
+canvas:active{cursor:grabbing}
+#c{position:relative;z-index:1}
+#snow{position:fixed;left:0;top:0;width:100vw;height:100vh;max-width:none;flex:none;
+  pointer-events:none;cursor:default;z-index:0}
+p{position:relative;z-index:1;margin:0 0 16px;font-size:13px;opacity:.7}
+</style>
+</head>
+<body>
+<canvas id="snow"></canvas>
+<canvas id="c"></canvas>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const CH='·:+*#%@';
+const TILT=0.25,CT=Math.cos(TILT),ST=Math.sin(TILT);
+let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const P=[];
+const add=(x,y,z,h,s,dl)=>P.push({x,y,z,h,s,dl});
+const norm=v=>{const l=Math.hypot(...v);return v.map(a=>a/l)};
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const basis=n=>{const e1=norm(cross(n,Math.abs(n[1])>0.9?[1,0,0]:[0,1,0]));return [e1,cross(n,e1)]};
+const put=(c,e1,e2,n,a,b,g,h,s,dl)=>add(
+  c[0]+a*e1[0]+b*e2[0]+g*n[0],
+  c[1]+a*e1[1]+b*e2[1]+g*n[1],
+  c[2]+a*e1[2]+b*e2[2]+g*n[2],h,s,dl);
+function lily(c,n,size,h){
+  const [e1,e2]=basis(n);
+  for(let l=0;l<2;l++){
+    const sz=size*(1-l*0.18),off=l*0.5236;
+    for(let u=0;u<6.283;u+=0.035)for(let v=0.06;v<=1;v+=0.05){
+      const k=Math.abs(Math.cos(3*(u+off)));
+      const r=sz*v*Math.pow(k,0.7);
+      const g=sz*(0.15*v+0.3*v*v)+l*size*0.1;
+      const throat=v<0.25;
+      put(c,e1,e2,n,r*Math.cos(u),r*Math.sin(u),g,
+        throat?75:h, throat?55:75-45*v,
+        throat?2:6+14*v-7*Math.pow(k,10));}}
+  for(let k=0;k<6;k++){
+    const a=k*1.047+0.3;
+    for(let t=0.05;t<=1;t+=0.05){
+      const rr=size*0.55*t*(0.7+0.3*Math.sin(k*2)),gg=size*(0.25+0.7*t),tip=t>0.85;
+      put(c,e1,e2,n,rr*Math.cos(a),rr*Math.sin(a),gg,tip?42:70,tip?95:40,tip?18:8);}}}
+
+
+function bud(c,d,L,rad){
+  const [e1,e2]=basis(d);
+  for(let t=0;t<=1;t+=0.02)for(let u=0;u<6.283;u+=0.2){
+    const r=rad*Math.pow(Math.max(0,Math.sin(Math.PI*Math.pow(t,0.8))),0.7)*(1+0.1*Math.sin(u*3));
+    put(c,e1,e2,d,r*Math.cos(u),r*Math.sin(u),L*t,88-10*t,50,14+8*Math.sin(u));}}
+
+const C=[0,-0.45,0];
+const dirOf=(i,N,maxA,off)=>{
+  const th=Math.acos(1-(i+0.5)/N*(1-Math.cos(maxA))),az=i*2.39996+off;
+  return [Math.sin(th)*Math.cos(az),Math.cos(th),Math.sin(th)*Math.sin(az)]};
+const NL=8,NB=7;
+for(let i=0;i<NB;i++){
+  const d=dirOf(i,NB,0.95,1.0),L=0.5+rnd()*0.2;
+  bud([C[0]+0.45*d[0],C[1]+0.45*d[1],C[2]+0.45*d[2]],d,L,0.1);}
+for(let i=0;i<NL;i++){
+  const d=dirOf(i,NL,1.25,0),R=0.8;
+  lily([C[0]+R*d[0],C[1]+R*d[1],C[2]+R*d[2]],d,i==0?0.5:0.42,345+rnd()*18);}
+for(let i=0;i<600;i++){const a=rnd()*6.283,b=Math.acos(1-rnd()*0.9),r=0.55+rnd()*0.2;
+  add(r*Math.sin(b)*Math.cos(a),C[1]+r*Math.cos(b),r*Math.sin(b)*Math.sin(a),125,40,-10);}
+
+for(let t=0;t<=1;t+=0.007)for(let u=0;u<6.283;u+=0.025){
+  const r=(0.16+0.9*Math.pow(1-t,1.5))*(1+0.09*Math.sin(u*9+t*4)*(1-t*0.5)+0.04*Math.sin(u*17)),
+        y=-0.45-1.35*t+0.1*Math.sin(u*5)*(1-t),
+        band=t>0.66&&t<0.70;
+  add(r*Math.cos(u),y,r*Math.sin(u),band?335:332,band?55:45,band?22:12+8*Math.sin(u*3+t*6));}
+for(let k=0;k<4;k++)for(let t=0.68;t<0.95;t+=0.01){
+  const u=k*1.6+0.8*Math.sin(t*14),r=(0.16+0.9*Math.pow(1-t,1.5))*1.03;
+  add(r*Math.cos(u),-0.45-1.35*t,r*Math.sin(u),335,55,22);}
+
+
+const CARD_TEXT=['blabla'];
+const GW=90,GH=58,CW=0.7,CHT=0.45;      
+const CARDP=[];                          
+(function(){
+  const oc=document.createElement('canvas');oc.width=GW;oc.height=GH;
+  const g=oc.getContext('2d');
+  g.fillStyle='#000';g.fillRect(0,0,GW,GH);
+  g.fillStyle='#fff';g.textAlign='center';g.textBaseline='middle';
+  let f=Math.floor(GH/(CARD_TEXT.length+0.8));
+  do{g.font='bold '+f+'px sans-serif';f--}
+  while(f>6&&Math.max(...CARD_TEXT.map(t=>g.measureText(t).width))>GW*0.8);
+  CARD_TEXT.forEach((t,i)=>g.fillText(t,GW/2,GH*(i+1)/(CARD_TEXT.length+1)));
+  const d=g.getImageData(0,0,GW,GH).data;
+  for(let j=0;j<GH;j++)for(let i=0;i<GW;i++){
+    const ink=d[(j*GW+i)*4]>110;
+    const edge=i<2||j<2||i>=GW-2||j>=GH-2;
+    CARDP.push({a:(i/(GW-1)-0.5)*CW,b:(0.5-j/(GH-1))*CHT,
+      h:ink?335:edge?340:0, s:ink?60:edge?50:0, dl:ink?-28:edge?10:30,
+      dz:ink?0.03:edge?0.015:0});}
+})();
+const wrap=a=>{while(a>Math.PI)a-=6.283185;while(a<-Math.PI)a+=6.283185;return a};
+
+// Где записка лежит в букете:
+//   AZ0 — с какой стороны (0…6.28),
+//   RAD — насколько глубоко внутри (меньше = глубже спрятана),
+//   CY0 — высота центра: выше = больше торчит край, ниже = почти спрятана.
+const AZ0=2.6,RAD=0.55,CY0=0.5;
+const CX0=RAD*Math.cos(AZ0),CZ0=RAD*Math.sin(AZ0),PHI0=AZ0+Math.PI/2;
+const PULL_T=[0,0.7,1.5];                // куда записка выдвигается (перед зрителем)
+let pull=0,mx=-1e4,my=-1e4;
+
+// 6. СНЕГ НА ВЕСЬ ФОН (отдельный холст на весь экран, позади букета)
+const sv=document.getElementById('snow'),sx=sv.getContext('2d');
+let SW,SH,SD,flakes=[];
+function snowFit(){
+  SD=devicePixelRatio||1;SW=innerWidth;SH=innerHeight;
+  sv.width=SW*SD;sv.height=SH*SD;
+  // количество снежинок зависит от размера экрана: 60…260
+  const n=Math.max(60,Math.min(260,Math.floor(SW*SH/9000)));
+  flakes=Array.from({length:n},()=>({
+    x:Math.random()*SW,y:Math.random()*SH,
+    s:5+Math.random()*17,                 // размер
+    v:0.3+Math.random()*0.8,              // скорость падения
+    ph:Math.random()*6.283,w:0.5+Math.random(), // качание из стороны в сторону
+    a:0.35+Math.random()*0.65,            // прозрачность
+    r:Math.random()*6.283,rv:(Math.random()-0.5)*0.012}));
+}
+function snowFrame(t){
+  sx.setTransform(SD,0,0,SD,0,0);sx.clearRect(0,0,SW,SH);
+  sx.strokeStyle='#fff';sx.fillStyle='#fff';
+  for(const f of flakes){
+    f.y+=f.v*(0.5+f.s/18);
+    f.x+=Math.sin(t*0.0007*f.w+f.ph)*0.4;
+    f.r+=f.rv;
+    if(f.y>SH+20){f.y=-20;f.x=Math.random()*SW}
+    if(f.x>SW+20)f.x=-20;if(f.x<-20)f.x=SW+20;
+    sx.globalAlpha=f.a;
+    if(f.s<9){                            // мелкие — просто точки
+      sx.beginPath();sx.arc(f.x,f.y,f.s*0.25,0,6.283);sx.fill();
+    }else{                                // крупные — снежинка с 6 лучами и веточками
+      const R=f.s/2;sx.lineWidth=f.s>16?1.4:1;sx.beginPath();
+      for(let k=0;k<6;k++){
+        const a=f.r+k*1.0472,ca=Math.cos(a),sa=Math.sin(a);
+        sx.moveTo(f.x,f.y);sx.lineTo(f.x+R*ca,f.y+R*sa);
+        const bx=f.x+R*0.6*ca,by=f.y+R*0.6*sa,b=R*0.32;
+        for(const sg of[-1,1]){sx.moveTo(bx,by);sx.lineTo(bx+b*Math.cos(a+sg*0.8),by+b*Math.sin(a+sg*0.8))}}
+      sx.stroke();}
+  }
+  sx.globalAlpha=1;requestAnimationFrame(snowFrame)}
+addEventListener('resize',snowFit);snowFit();requestAnimationFrame(snowFrame);
+
+// 7. Вращение и мышь
+const AUTO=0.012,FRICTION=0.03,SENS=0.01;
+let W,H,D,S=1,ry=0,vel=AUTO,drag=false,lx=0;
+function fit(){D=devicePixelRatio||1;W=cv.clientWidth;H=cv.clientHeight;cv.width=W*D;cv.height=H*D}
+addEventListener('resize',fit);fit();
+const setMouse=e=>{const r=cv.getBoundingClientRect();mx=e.clientX-r.left;my=e.clientY-r.top};
+cv.onpointerdown=e=>{drag=true;lx=e.clientX;vel=0;setMouse(e);cv.setPointerCapture(e.pointerId)};
+cv.onpointerup=cv.onpointercancel=()=>{drag=false};
+cv.onpointermove=e=>{setMouse(e);if(drag){vel=(e.clientX-lx)*SENS;ry+=vel;lx=e.clientX}};
+cv.onpointerleave=e=>{if(e.pointerType==='mouse'){mx=my=-1e4}};
+
+// проекция точки (в системе после поворота) на экран
+const proj=(x,y,z)=>{const y2=y*CT-z*ST,z2=y*ST+z*CT,k=1/(1-z2*0.12);
+  return [W/2+x*S*k,H/2-(y2+0.4)*S*k,k]};
+
+// 8. Кадр
+function frame(){
+  S=Math.min(W,H*0.9)/3.2;
+  const e=pull*pull*(3-2*pull);          // плавный прогресс выдвижения 0..1
+  if(!drag){
+    const target=vel<0?-AUTO:AUTO;
+    vel+=(target-vel)*FRICTION;
+    ry+=vel*(1-e);                       // пока записка достана, букет почти стоит
+  }
+  const cs=Math.cos(ry),sn=Math.sin(ry);
+
+  // записка: из «внутри букета» по дуге вверх и вперёд к зрителю
+  const rx=CX0*cs+CZ0*sn,rz=-CX0*sn+CZ0*cs;
+  const ccx=rx+(PULL_T[0]-rx)*e;
+  const ccy=CY0+(PULL_T[1]-CY0)*e+0.5*Math.sin(Math.PI*e);
+  const ccz=rz+(PULL_T[2]-rz)*e;
+  const sc=1+1.4*e;
+  const psi=wrap(PHI0-ry)*(1-e),cp=Math.cos(psi),sp=Math.sin(psi);
+
+  const rs=proj(rx,CY0+CHT/2,rz),cu=proj(ccx,ccy,ccz);
+  const near=Math.hypot(mx-rs[0],my-rs[1])<0.3*S ||
+    (pull>0.25&&Math.abs(mx-cu[0])<CW*sc*0.55*S*cu[2]&&Math.abs(my-cu[1])<CHT*sc*0.55*S*cu[2]);
+  pull+=((near?1:0)-pull)*0.1;
+
+  // холст букета прозрачный: сквозь него виден снег
+  ctx.setTransform(D,0,0,D,0,0);ctx.clearRect(0,0,W,H);
+  ctx.font='10px monospace';ctx.textAlign='center';
+  const cw=7,chh=10,cols=Math.floor(W/cw),rows=Math.floor(H/chh);
+  const buf=new Array(cols*rows),zb=new Float32Array(cols*rows).fill(-9);
+
+  const plot=(x,y,z,p)=>{
+    const y2=y*CT-z*ST,z2=y*ST+z*CT;
+    const k=1/(1-z2*0.12),cx=Math.round((W/2+x*S*k)/cw),cy=Math.round((H/2-(y2+0.4)*S*k)/chh);
+    if(cx<0||cy<0||cx>=cols||cy>=rows)return;
+    const i=cy*cols+cx;if(z2>zb[i]){zb[i]=z2;buf[i]=[p,z2]}};
+
+  for(const p of P)plot(p.x*cs+p.z*sn,p.y,-p.x*sn+p.z*cs,p);
+  for(const q of CARDP)plot(ccx+q.a*sc*cp,ccy+q.b*sc,ccz+q.a*sc*sp+q.dz*sc,q);
+
+  for(let i=0;i<buf.length;i++){const en=buf[i];if(!en)continue;const p=en[0];
+    const sh=Math.max(0,Math.min(0.99,(en[1]+1)/2));
+    ctx.fillStyle=`hsl(${p.h},${p.s}%,${Math.min(90,38+sh*28+p.dl)}%)`;
+    ctx.fillText(CH[Math.floor(sh*CH.length)],(i%cols)*cw+cw/2,Math.floor(i/cols)*chh+chh)}
+  requestAnimationFrame(frame)}
+frame();
+</script>
+</body>
+</html>
